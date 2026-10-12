@@ -4,6 +4,9 @@ let core;
 let entries=[],position=-1,request=null,serial=0;
 const cache=new Map();
 const allowed=['h1','h2','h3','h4','h5','h6','p','br','hr','a','img','strong','em','del','code','pre','blockquote','ul','ol','li','table','thead','tbody','tr','th','td','sup','sub'];
+const escapeAttribute=value=>String(value||'').replace(/[&"<>]/g,c=>({'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'}[c]));
+// Keep image URLs out of src until the user enables images.
+const renderer={image({href,text}){return `<img data-image-src="${escapeAttribute(href)}" alt="${escapeAttribute(text)}">`}};
 function status(text){$('status').textContent=text}
 function controls(){
   $('back').disabled=position<=0;
@@ -18,13 +21,14 @@ function render(entry){
   $('address').value=entry.url;$('host').textContent=new URL(entry.url).hostname;
   $('page-title').textContent=entry.title;document.title=entry.title+' — Relay';
   $('original').href=entry.url;$('original').hidden=false;
-  const fragment=DOMPurify.sanitize(marked.parse(entry.markdown),{ALLOWED_TAGS:allowed,ALLOWED_ATTR:['href','src','alt','title','start'],ALLOW_DATA_ATTR:false,RETURN_DOM_FRAGMENT:true});
+  const fragment=DOMPurify.sanitize(marked.parse(entry.markdown,{renderer}),{ALLOWED_TAGS:allowed,ALLOWED_ATTR:['href','alt','title','start','data-image-src'],ALLOW_DATA_ATTR:false,RETURN_DOM_FRAGMENT:true});
   for(const a of fragment.querySelectorAll('a')){
     const raw=a.getAttribute('href');
     try{a.href=core.normalizeUrl(raw,entry.url);a.title='この画面で読む: '+a.href}catch{a.removeAttribute('href')}
   }
   for(const img of fragment.querySelectorAll('img')){
-    let src;try{src=core.normalizeUrl(img.getAttribute('src'),entry.url);if(!src.startsWith('https:'))throw Error()}catch{img.remove();continue}
+    let src;try{const raw=img.getAttribute('data-image-src');if(!raw)throw Error();src=core.normalizeUrl(raw,entry.url);if(!src.startsWith('https:'))throw Error()}catch{img.remove();continue}
+    img.removeAttribute('data-image-src');
     if($('images').checked){img.src=src;img.loading='lazy';img.referrerPolicy='no-referrer';img.addEventListener('error',()=>img.replaceWith(document.createTextNode('[画像を取得できません]')),{once:true})}
     else{const label=document.createElement('span');label.className='image-placeholder';label.textContent='画像: '+(img.alt||'画像表示をオンにすると表示');img.replaceWith(label)}
   }
