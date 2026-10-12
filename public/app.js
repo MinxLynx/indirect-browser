@@ -24,6 +24,7 @@ function render(entry){
   const fragment=DOMPurify.sanitize(marked.parse(entry.markdown,{renderer}),{ALLOWED_TAGS:allowed,ALLOWED_ATTR:['href','alt','title','start','data-image-src'],ALLOW_DATA_ATTR:false,RETURN_DOM_FRAGMENT:true});
   for(const a of fragment.querySelectorAll('a')){
     const raw=a.getAttribute('href');
+    if(!raw)continue;
     try{a.href=core.normalizeUrl(raw,entry.url);a.title='この画面で読む: '+a.href}catch{a.removeAttribute('href')}
   }
   for(const img of fragment.querySelectorAll('img')){
