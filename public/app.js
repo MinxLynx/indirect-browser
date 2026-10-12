@@ -6,7 +6,8 @@ const cache=new Map();
 const allowed=['h1','h2','h3','h4','h5','h6','p','br','hr','a','img','strong','em','del','code','pre','blockquote','ul','ol','li','table','thead','tbody','tr','th','td','sup','sub'];
 const escapeAttribute=value=>String(value||'').replace(/[&"<>]/g,c=>({'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'}[c]));
 // Keep image URLs out of src until the user enables images.
-const renderer={image({href,text}){return `<img data-image-src="${escapeAttribute(href)}" alt="${escapeAttribute(text)}">`}};
+const renderer=new marked.Renderer();
+renderer.image=({href,text})=>`<img data-image-src="${escapeAttribute(href)}" alt="${escapeAttribute(text)}">`;
 function status(text){$('status').textContent=text}
 function controls(){
   $('back').disabled=position<=0;
